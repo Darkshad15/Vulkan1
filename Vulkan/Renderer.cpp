@@ -69,6 +69,7 @@ void Renderer::CreateInstance()
     };
 
     instance = vk::raii::Instance(context, create_info);
+    SetupDebugMessenger();
 
 }
 
