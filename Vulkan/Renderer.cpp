@@ -107,7 +107,7 @@ vk::Bool32 Renderer::DebugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT seve
 }
 
 
-void Renderer::pickDevice()
+void Renderer::pickPhysicDevice()
 {
     std::vector<vk::raii::PhysicalDevice> physicalDevices = instance.enumeratePhysicalDevices();
     auto const devIter = std::ranges::find_if( physicalDevices, [&]( auto const & physicalDevice ) { return isDeviceSuitable( physicalDevice ); } );
@@ -125,9 +125,48 @@ bool Renderer::isDeviceSuitable(vk::raii::PhysicalDevice const & physicalDevice)
     // Check physical device support Vulkan 1.4 
     bool supportsVulkan = physicalDevice.getProperties().apiVersion >= vk::ApiVersion14;
     
+    //check required physical device Extension 
+    auto availableDeviceExtensions = physicalDevice.enumerateDeviceExtensionProperties();
+    bool supportAllRequiredExtensions = 
+        std::ranges::all_of(requiredDeviceExtensions,
+            [&availableDeviceExtensions](auto const & requiredDeviceExtension)
+            {
+                return std::ranges::any_of(availableDeviceExtensions,
+                    [requiredDeviceExtension](auto const &availableDeviceExtension) { return strcmp(availableDeviceExtension.extensionName, requiredDeviceExtension) == 0; });
+            });
+    
     // return true if the physicalDevice meet the criteria
     return supportsVulkan;
 }
+
+void Renderer::createLogicalDevice()
+{
+    // 
+    std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties(); 
+    
+    auto graphicsQueueFamilyProperty = std::ranges::find_if(queueFamilyProperties, [](auto const &qfp)
+        {return (qfp.queueFlags & vk::QueueFlagBits::eGraphics) != static_cast<vk::QueueFlags> (0);});
+    assert (graphicsQueueFamilyProperty != queueFamilyProperties.end() && "No graphics queue family found!");
+    
+    auto graphicsIndex = static_cast<uint32_t>(std::distance(queueFamilyProperties.begin(), graphicsQueueFamilyProperty));
+    
+    //Create Device
+    
+    float    QueuePriority = 0.5f;
+    vk::DeviceQueueCreateInfo queueCreateInfo{ .queueFamilyIndex = graphicsIndex, .queueCount = 1, .pQueuePriorities = &QueuePriority};
+    vk::DeviceCreateInfo deviceCreateInfo{
+        .pNext = nullptr,
+        .queueCreateInfoCount = 1,
+        .pQueueCreateInfos = &queueCreateInfo,
+        .enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtensions.size()),
+        .ppEnabledExtensionNames = requiredDeviceExtensions.data(),
+    };
+    
+    device = vk::raii::Device(physicalDevice, deviceCreateInfo);
+    graphicsQueue = vk::raii::Queue(device, graphicsIndex, 0);
+     
+}
+
 
 void Renderer::SetupDebugMessenger()
 {
