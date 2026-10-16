@@ -1,4 +1,6 @@
 #include "Application.h"
+#include "Renderer.h"
+
 
 void Application::Init()
 {
@@ -32,7 +34,17 @@ void Application::InitWindow()
 
 void Application::InitVulkan()
 {
-
+    
+    Renderer renderer ;
+    renderer.CreateInstance();
+        
+    renderer.createSurface(window);
+    
+    renderer.pickPhysicDevice();
+    renderer.createLogicalDevice();
+    renderer.createSwapChain();
+    
+    
 }
 
 void Application::DestroyWindow()

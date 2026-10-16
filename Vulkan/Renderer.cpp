@@ -2,7 +2,9 @@
 #include "Debug.h"
 #include <iostream>
 #include <print>
-#include <GLFW/glfw3.h>
+
+
+#include "Application.h"
 
 void Renderer::CreateInstance()
 {
@@ -117,6 +119,7 @@ void Renderer::pickPhysicDevice()
         throw std::runtime_error( "failed to find a suitable GPU!" );
     }
     physicalDevice = *devIter;
+    
 }
 
 
@@ -140,10 +143,41 @@ bool Renderer::isDeviceSuitable(vk::raii::PhysicalDevice const & physicalDevice)
     return supportsVulkan;
 }
 
+
+
+void Renderer::createSurface(GLFWwindow* window) { 
+    VkSurfaceKHR _surface;
+
+    if (glfwCreateWindowSurface(*instance, window, nullptr, &_surface) != 0) {
+        throw std::runtime_error("failed to create window surface!");
+    }
+    
+    surface = vk::raii::SurfaceKHR(instance, _surface);
+}
+
 void Renderer::createLogicalDevice()
 {
+    
+    
     // 
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties(); 
+    
+    uint32_t queueIndex = ~0;
+    for (uint32_t qfpIndex = 0; qfpIndex < queueFamilyProperties.size(); qfpIndex++)
+    {
+        if ((queueFamilyProperties[qfpIndex].queueFlags & vk::QueueFlagBits::eGraphics) &&
+            physicalDevice.getSurfaceSupportKHR(qfpIndex, *surface))
+        {
+            // found a queue family that supports both graphics and present
+            queueIndex = qfpIndex;
+            break;
+        }
+    }
+    if (queueIndex == ~0)
+    {
+        throw std::runtime_error("Could not find a queue for graphics and present -> terminating");
+    }
+    
     
     auto graphicsQueueFamilyProperty = std::ranges::find_if(queueFamilyProperties, [](auto const &qfp)
         {return (qfp.queueFlags & vk::QueueFlagBits::eGraphics) != static_cast<vk::QueueFlags> (0);});
@@ -168,6 +202,16 @@ void Renderer::createLogicalDevice()
      
 }
 
+void Renderer::createSwapChain()
+{
+    vk::SurfaceCapabilitiesKHR surfaceCapabilities = physicalDevice.getSurfaceCapabilitiesKHR( *surface );
+    swapChainExtent                                = chooseSwapExtent(surfaceCapabilities);
+    uint32_t minImageCount                         = chooseSwapMinImageCount(surfaceCapabilities);
+
+    std::vector<vk::SurfaceFormatKHR> availableFormats = physicalDevice.getSurfaceFormatsKHR(*surface);
+    swapChainSurfaceFormat                             = chooseSwapSurfaceFormat(availableFormats);
+}
+
 
 void Renderer::SetupDebugMessenger()
 {
@@ -187,3 +231,5 @@ void Renderer::SetupDebugMessenger()
     
     debugMessenger = instance.createDebugUtilsMessengerEXT(createInfo);
 }
+
+

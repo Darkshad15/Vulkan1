@@ -21,17 +21,13 @@ public:
     void Init();
     void Run();
     void Destroy();
-    
-    
 
+    
 private:
     void InitWindow();
     void InitVulkan();
-
+    
     void DestroyWindow();
     void DestroyVulkan();
-    
-
-    
 
 };
