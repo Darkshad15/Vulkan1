@@ -3,6 +3,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <vulkan/vulkan_raii.hpp>
 
+#include "Renderer.h"
 #include "GLFW/glfw3.h"
 
 
@@ -17,7 +18,8 @@ public:
     
 
     GLFWwindow* window = nullptr;
-
+    Renderer* renderer = nullptr;
+    
     void Init();
     void Run();
     void Destroy();

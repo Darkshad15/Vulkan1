@@ -35,15 +35,16 @@ void Application::InitWindow()
 void Application::InitVulkan()
 {
     
-    Renderer renderer ;
-    renderer.CreateInstance();
+   renderer = new Renderer();
+    renderer->CreateInstance();
         
-    renderer.createSurface(window);
+    renderer->createSurface(window);
     
-    renderer.pickPhysicDevice();
-    renderer.createLogicalDevice();
-    renderer.createSwapChain();
+    renderer->pickPhysicDevice();
+    renderer->createLogicalDevice();
+    renderer->createSwapChain(window);
     
+    renderer->createImageViews();
     
 }
 
